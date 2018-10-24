@@ -18,14 +18,17 @@ int lazy[4*1024000];
 void lazy_update(int i,int a,int b,int m);
 
 void create_st(int i,int a,int b){
+  // std::cout << "create ("<<a<<" : "<<b <<")"<< '\n';
+  lazy[i]=0;
   if(a==b){
     st[i]=A[a]-'0';
+
     // leaves[a]=i;
     return;
   }
 
   int m =(a+b)/2;
-  if(lazy[i]) lazy_update(i,a,b,m);
+  // if(lazy[i]) lazy_update(i,a,b,m);
   create_st(L(i),a,m);
   create_st(R(i),m +1,b);
   st[i]=st[L(i)]+st[R(i)];
@@ -39,22 +42,33 @@ void lazy_reverse(int &l) {
   }
   // std::cout << "/**///////////////entre reverse/***************** */ "<<l << '\n';
 }
+void lazy_merge(int i) {
+
+  switch (lazy[i]) {
+    case 1: lazy[i]=2; break;
+    case 2: lazy[i]=1; break;
+    case 3:lazy[i]=0; break;
+  }
+  // std::cout << "/**///////////////entre reverse/***************** */ "<<l << '\n';
+}
 void lazy_update(int i,int a,int b,int m){
   if(a==b){lazy[i]=0;return ;}
 
-  if(lazy[L(i)]) lazy_update(L(i),a,m,(m+a)/2);
-  if(lazy[R(i)]) lazy_update(R(i),m+1,b,(b+m+1)/2);
-
-  lazy[L(i)]= lazy[i];
-  lazy[R(i)]= lazy[i];
+  // if(lazy[L(i)]) lazy_update(L(i),a,m,(m+a)/2);
+  // if(lazy[R(i)]) lazy_update(R(i),m+1,b,(b+m+1)/2);
   if ( lazy[i]!=3) {
+    // if(lazy[L(i)])lazy[L(i)]=lazy[i]);
+    // if(lazy[R(i)])lazy[R(i)]=lazy[i]);
     st[L(i)]= (lazy[i]==1)?0:m-a+1;
     st[R(i)]= (lazy[i]==1)?0:b-m;
+
+    lazy[L(i)]= lazy[i];
+    lazy[R(i)]= lazy[i];
   }else{
+    if(lazy[L(i)])lazy_merge(L(i));else lazy[L(i)]= lazy[i];
+    if(lazy[R(i)])lazy_merge(R(i));else lazy[R(i)]= lazy[i];
     st[L(i)]= (m-a+1)-st[L(i)];
     st[R(i)]= (b-(m+1)+1)-st[R(i)];
-    // if(lazy[L(i)])lazy_reverse(lazy[L(i)]);
-    // if(lazy[R(i)])lazy_reverse(lazy[R(i)]);
   }
   // std::cout << "actualizar lazy " <<lazy[i]<<" -> "<<st[L(i)]<<" "<<st[R(i)]<<" / " <<a<<" "<<b<<" m:"<<m<< '\n';
   lazy[i]= 0;
@@ -66,38 +80,41 @@ int update(int i,int a,int b,int qa,int qb,int v){
   if(qb<a||b<qa){
     // std::cout << "\tfuera" << '\n';
     return st[i];}
-  if(lazy[i]) lazy_update(i,a,b,m);
   if(qa<=a&&b<=qb){
       switch (v) {
-        case 1: lazy[i]=2; //plantar marcador lazy
+        case 1: lazy[i]=2; //plantar marcador lazy F
                 st[i]=b-a+1;
                 // std::cout << "update " <<" "<<a<<" "<<b<<"/ "<<st[i]<< '\n';
               break;
-        case 0: lazy[i]=1; //plantar marcador lazy
+        case 0: lazy[i]=1; //plantar marcador lazy E
                 st[i]=0;
               break;
-        case -1: lazy[i]=3; //plantar marcador lazy
+        case -1:
+                if (lazy[i])lazy_merge(i);
+                else lazy[i]=3; //plantar marcador lazy I
                 st[i]=(b-a+1)-st[i];
+
                 // std::cout << "update " <<" :"<<a<<" "<<b<<"/ "<<st[i]<< '\n';
               break;
             }
             // std::cout << "marcador lazy "<< lazy[i]<<" en "<<a<<" "<<b << '\n';
       return st[i];
   }
+  if(lazy[i]) lazy_update(i,a,b,m);
   int sl = update(L(i),a,m,qa,qb,v);
   int sr = update(R(i),m+1,b,qa,qb,v);
   st[i]=sl+sr;
   // std::cout << "update " <<" "<<a<<" "<<b<<"/ "<<sl<<" "<<sr<< '\n';
-  return sl+sr;
+  return st[i];
 }
 int rmq(int i,int a,int b,int qa,int qb){
   // std::cout << "break rmq " <<" "<<a<<" "<<b<<"/ "<<qa<<" "<<qb<< '\n';
 
   int m=(a+b)/2;
   if(qb<a||b<qa) return 0;
-  if(lazy[i]) lazy_update(i,a,b,m);
   if(qa<=a&&b<=qb) {
     return st[i];}
+  if(lazy[i]) lazy_update(i,a,b,m);
   int sl = rmq(L(i),a,m,qa,qb);
   int sr = rmq(R(i),m+1,b,qa,qb);
   // std::cout << "rmq " <<" "<<a<<" "<<b<<"/ "<<sl+sr<< '\n';
@@ -122,6 +139,7 @@ int main(int argc, char const *argv[]) {
     // std::cout << pirates << '\n';
     int n_pirates=A.length();
 
+    // E(0,n_pirates);
     create();
     cin>>Q;
     char q;int a,b,count=1;
@@ -140,7 +158,7 @@ int main(int argc, char const *argv[]) {
                 break;
       }
     }
-    E(0,n_pirates);
+
 
   }
   return 0;
